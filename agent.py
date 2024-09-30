@@ -93,7 +93,7 @@ def search_node(state: AgentState) -> AgentState:
 Conversation context: {conversation_history}
 Proposed search query: {search_query}
 
-Is this search query relevant and specific to the user's question and conversation context? If not, provide a more relevant query. Respond with either:
+Is this search query relevant and specific to the user's question and conversation context? If not, provide a more relevant query. todays date is September 30, 2024 Respond with either:
 1. 'RELEVANT: [original query]' if the query is good.
 2. 'UPDATED: [new query]' if you have a better, more relevant query.""")
         ])
@@ -179,11 +179,8 @@ def respond_node(state: AgentState) -> AgentState:
 3. Well-structured and easy to read
 4. Backed by the information from the search results and past interactions
 
-When providing information about ticket prices or event details:
-- List prices from lowest to highest
-- Include direct links to ticket purchasing pages when available
-- Mention any discounts or special offers
-- Specify the source of the information (e.g., "According to TicketCity,...")
+When providing information about whatever the user needs:
+- You always provide up to date info. Today is September 30, 2024)
 
 If the information is not available or unclear, state so explicitly.
 

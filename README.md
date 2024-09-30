@@ -1,6 +1,6 @@
 # WillyV's AI Assistant Terminal Chat
 
-![WillyV's AI Assistant](https://your-image-url-here.com/ai-assistant-logo.png)
+![WillyV's AI Assistant](screenshot3.png)
 
 Welcome to WillyV's AI Assistant Terminal Chat! This powerful and highly customizable tool combines the capabilities of GPT-4o and SearxNG to provide an intelligent, web-aware chatbot right in your terminal. Designed to be flexible and extensible, it can be tailored to suit a wide range of use cases and personal preferences.
 
@@ -27,9 +27,6 @@ Welcome to WillyV's AI Assistant Terminal Chat! This powerful and highly customi
 - 🛠️ Highly customizable with support for additional tools and persona modifications
 - 🔌 Extensible architecture allowing integration of various LangChain tools
 
-## Demo
-
-[Insert your demo video here]
 
 ## Prerequisites
 
