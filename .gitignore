@@ -1,0 +1,45 @@
+# Python-related files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.env
+
+# IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Build and distribution directories
+build/
+dist/
+*.egg-info/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment variables
+.env
+
+# API keys and secrets
+*.pem
+*.key
+
+# Backup files
+*.bak
+
+# Other project-specific files to ignore (add as needed)
+# config.ini
+# secrets.json

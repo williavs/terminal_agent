@@ -21,6 +21,7 @@ from typing import TypedDict, Annotated, Sequence, List, Dict, Any
 from rich.box import HEAVY
 from rich.text import Text
 from rich.style import Style
+from ascii_art import display_welcome_message
 
 # Load environment variables from .env file
 load_dotenv()
@@ -254,18 +255,6 @@ workflow.set_entry_point("search")
 # Compile the graph
 graph = workflow.compile()
 
-def display_welcome_message():
-    welcome_message = Panel(
-        "[bold blue]Welcome to the AI Assistant Terminal Chat![/bold blue]\n"
-        "Type your questions and I'll do my best to answer.\n"
-        "Type 'quit' to exit the chat.",
-        expand=False,
-        border_style="bold",
-        title="AI Assistant",
-        title_align="center"
-    )
-    console.print(welcome_message)
-
 def get_user_input():
     return Prompt.ask("[bold green]You")
 
@@ -317,23 +306,18 @@ def main():
             ai_response = state["messages"][-1].content
             memory_state["messages"].append({"role": "assistant", "content": ai_response})
             
-            # Create a colorful and branded panel for the final response
-            header = "[bold magenta]WillyV's[/bold magenta] [bold cyan]AI Assistant[/bold cyan]"
-            footer = "[italic]Powered by GPT-4o & SearxNG[/italic]\n[bold green]Created by William Van Sickle[/bold green]"
-            
-            final_response_panel = Panel(
+            # Create a simple panel for the final response
+            response_panel = Panel(
                 Markdown(ai_response),
-                title=header,
-                subtitle=footer,
+                title="AI Assistant Response",
                 expand=False,
                 border_style="cyan",
-                box=HEAVY,
                 padding=(1, 1),
                 style="on black"
             )
             
             console.print("\n")  # Add some space before the final response
-            console.print(final_response_panel)
+            console.print(response_panel)
             console.print("\n")  # Add some space after the final response
             
             messages = state["messages"]
