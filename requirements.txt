@@ -1,8 +1,11 @@
-fastapi
-uvicorn
-pandas
+
 python-dotenv
 langchain
 langchain_openai
 langchain_community
 pydantic
+langgraph
+python-dotenv
+langgraph
+rich
+
