@@ -1,27 +1,19 @@
 import os
 import time
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_community.utilities import SearxSearchWrapper
 from langgraph.graph import StateGraph, END
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain.tools import StructuredTool
-from langchain.prompts import ChatPromptTemplate
-import json
-import asyncio
-from pydantic import BaseModel, Field
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.live import Live
 from rich.spinner import Spinner
 from rich.prompt import Prompt
-from rich.syntax import Syntax
-from typing import TypedDict, Annotated, Sequence, List, Dict, Any
-from rich.box import HEAVY
-from rich.text import Text
-from rich.style import Style
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+import asyncio
 from ascii_art import display_welcome_message
+from config_manager import get_llm_config
+from llm_components.shared import get_llm, sync_structured_search, AgentState
+from llm_components.graph_nodes import search_node, analyze_node, decide_node, respond_node, initial_response_node
 
 # Load environment variables from .env file
 load_dotenv()
@@ -29,211 +21,34 @@ load_dotenv()
 # Initialize Rich console for better formatting
 console = Console()
 
-# Initialize OpenAI LLM
-llm = ChatOpenAI(
-    openai_api_key=os.getenv("OPENAI_API_KEY"),
-    model="gpt-4o"
-)
+async def initialize_config():
+    return await get_llm_config()
 
-# Set up the SearxNG wrapper
-searx_host = "http://localhost:8080"
-searx_wrapper = SearxSearchWrapper(
-    searx_host=searx_host,
-    engines=["google", "bing", "duckduckgo"]
-)
+# Get LLM configuration
+config = asyncio.run(initialize_config())
 
-# Define SearchInput model
-class SearchInput(BaseModel):
-    query: str = Field(..., description="The search query string")
-
-# Define structured search function
-async def structured_search(query: str) -> str:
-    """Perform a web search with a query string."""
-    try:
-        result = await searx_wrapper.aresults(query, num_results=5)
-        if result:
-            return json.dumps(result)
-        else:
-            return json.dumps([{"error": "No results found"}])
-    except Exception as e:
-        return json.dumps([{"error": f"Search error: {str(e)}"}])
-
-# Create a synchronous wrapper for the asynchronous search function
-def sync_structured_search(query: str) -> str:
-    return asyncio.run(structured_search(query))
-
-# Create a StructuredTool for the search
-search_tool = StructuredTool(
-    name="web_search",
-    description="Search the web for information. Input should be a search query string.",
-    func=sync_structured_search,
-    args_schema=SearchInput,
-)
-
-# Update AgentState to include memory
-class AgentState(TypedDict):
-    messages: Annotated[Sequence[SystemMessage | HumanMessage | AIMessage], "The messages in the conversation"]
-    search_results: Annotated[List[str], "The results from the web searches"]
-    analysis: Annotated[str, "The analysis of the search results"]
-    search_count: Annotated[int, "The number of searches performed"]
-    decision: Annotated[str, "The decision to search or respond"]
-    search_query: Annotated[str, "The query for the next search"]
-    memory: Annotated[Dict[str, Any], "The memory of past interactions"]
-
-# Define the nodes
-def search_node(state: AgentState) -> AgentState:
-    """Perform a web search based on the search query."""
-    if state["search_count"] < 5:
-        search_query = state["search_query"] if state["search_query"] else state["messages"][-1].content
-        
-        # Double-check relevance
-        relevance_prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an AI assistant tasked with ensuring search queries are relevant to the user's question and conversation context."),
-            ("human", """User's question: {last_message}
-Conversation context: {conversation_history}
-Proposed search query: {search_query}
-
-Is this search query relevant and specific to the user's question and conversation context? If not, provide a more relevant query. todays date is September 30, 2024 Respond with either:
-1. 'RELEVANT: [original query]' if the query is good.
-2. 'UPDATED: [new query]' if you have a better, more relevant query.""")
-        ])
-        relevance_chain = relevance_prompt | llm
-        relevance_check = relevance_chain.invoke({
-            "last_message": state["messages"][-1].content,
-            "conversation_history": "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in state["memory"].get("messages", [])]),
-            "search_query": search_query
-        })
-        
-        relevance_content = relevance_check.content.strip()
-        if relevance_content.startswith("UPDATED:"):
-            search_query = relevance_content[8:].strip()
-            console.print(f"[bold yellow]Updated search query:[/bold yellow] {search_query}")
-        
-        search_results = sync_structured_search(search_query)
-        console.print(Panel(Syntax(search_results, "json", theme="monokai", line_numbers=True), title=f"Search Results (Attempt {state['search_count'] + 1})", expand=False))
-        return {
-            **state,
-            "search_results": state["search_results"] + [search_results],
-            "search_count": state["search_count"] + 1,
-            "search_query": ""  # Reset the search query after using it
-        }
-    return state
-
-def analyze_node(state: AgentState) -> AgentState:
-    """Analyze the search results."""
-    analysis_prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an AI assistant tasked with analyzing search results. Provide a concise summary of the key points. If the information is insufficient, clearly state what specific additional details are needed."),
-        ("human", "Analyze the following search results:\n{search_results}")
-    ])
-    analysis_chain = analysis_prompt | llm
-    analysis = analysis_chain.invoke({"search_results": json.dumps(state["search_results"])})
-    console.print(Panel(Markdown(analysis.content), title="Analysis", expand=False))
-    return {**state, "analysis": analysis.content}
-
-def decide_node(state: AgentState) -> AgentState:
-    """Decide whether to search again or proceed to respond."""
-    decision_prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an AI assistant tasked with deciding whether the current information is sufficient to answer the user's question or if more searching is needed. Consider the conversation history and previous answers when making your decision.
-
-If more searching is needed, formulate a specific and relevant search query based on the user's question and the current context of the conversation. The search query should be directly related to finding the requested information.
-
-Your response should be in one of these formats:
-1. 'SEARCH: [specific search query]' if more information is needed.
-2. 'RESPOND' if the information is sufficient to answer the question accurately."""),
-        ("human", """Based on this analysis: {analysis}
-
-And the user's question: {last_message}
-
-Consider the search count: {search_count}
-
-Previous conversation:
-{conversation_history}
-
-Should we search for more information or proceed to respond? If we need to search, what specific information should we look for? Ensure the search query is directly relevant to the user's question and the conversation context.""")
-    ])
-    decision_chain = decision_prompt | llm
-    last_human_message = next((msg for msg in reversed(state["messages"]) if isinstance(msg, HumanMessage)), None)
-    
-    conversation_history = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in state["memory"].get("messages", [])])
-    
-    decision = decision_chain.invoke({
-        "analysis": state["analysis"],
-        "last_message": last_human_message.content if last_human_message else "No message found.",
-        "search_count": state["search_count"],
-        "conversation_history": conversation_history
-    })
-    decision_content = decision.content.strip().upper()
-    if decision_content.startswith("SEARCH:") and state["search_count"] < 5:
-        new_query = decision_content[7:].strip()
-        console.print(f"[bold cyan]Searching for:[/bold cyan] {new_query}")
-        return {**state, "decision": "search", "search_query": new_query}
-    else:
-        return {**state, "decision": "respond"}
-
-def respond_node(state: AgentState) -> AgentState:
-    """Generate a response based on the analysis, conversation history, and memory."""
-    response_prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are an AI assistant tasked with providing precise and relevant information based on web search results and past interactions. Your responses should be:
-1. Directly relevant to the user's question
-2. Concise yet comprehensive
-3. Well-structured and easy to read
-4. Backed by the information from the search results and past interactions
-
-When providing information about whatever the user needs:
-- You always provide up to date info. Today is September 30, 2024)
-
-If the information is not available or unclear, state so explicitly.
-
-Consider the following memory of past interactions when formulating your response:
-{memory}
-
-Enclose your response between <response> tags."""),
-        ("human", """Based on this analysis: 
-<analysis>
-{analysis}
-</analysis>
-
-And considering the conversation history and memory:
-{conversation_history}
-
-Respond to the user's last message: 
-<user_message>
-{last_message}
-</user_message>
-
-Provide your response below:""")
-    ])
-    response_chain = response_prompt | llm
-    last_human_message = next((msg for msg in reversed(state["messages"]) if isinstance(msg, HumanMessage)), None)
-    
-    conversation_history = "\n".join([f"{msg['role'].capitalize()}: {msg['content']}" for msg in state["memory"].get("messages", [])])
-    
-    response = response_chain.invoke({
-        "analysis": state["analysis"],
-        "memory": json.dumps(state["memory"]),
-        "conversation_history": conversation_history,
-        "last_message": last_human_message.content if last_human_message else "No message found."
-    })
-    
-    import re
-    response_content = re.search(r'<response>(.*?)</response>', response.content, re.DOTALL)
-    if response_content:
-        formatted_response = response_content.group(1).strip()
-    else:
-        formatted_response = response.content.strip()
-    
-    return {**state, "messages": [*state["messages"], AIMessage(content=formatted_response)]}
+# Initialize LLM
+llm = get_llm(config)
 
 # Create the graph
 workflow = StateGraph(AgentState)
 
 # Add nodes
-workflow.add_node("search", search_node)
-workflow.add_node("analyze", analyze_node)
-workflow.add_node("decide", decide_node)
-workflow.add_node("respond", respond_node)
+workflow.add_node("initial_response", lambda state: initial_response_node(state, llm))
+workflow.add_node("search", lambda state: search_node(state, llm))
+workflow.add_node("analyze", lambda state: analyze_node(state, llm))
+workflow.add_node("decide", lambda state: decide_node(state, llm))
+workflow.add_node("respond", lambda state: respond_node(state, llm))
 
 # Add edges
+workflow.add_conditional_edges(
+    "initial_response",
+    lambda x: x["decision"],
+    {
+        "search": "search",
+        "respond": "respond"
+    }
+)
 workflow.add_edge("search", "analyze")
 workflow.add_edge("analyze", "decide")
 workflow.add_conditional_edges(
@@ -247,7 +62,7 @@ workflow.add_conditional_edges(
 workflow.add_edge("respond", END)
 
 # Set entry point
-workflow.set_entry_point("search")
+workflow.set_entry_point("initial_response")
 
 # Compile the graph
 graph = workflow.compile()
@@ -277,7 +92,10 @@ def main():
                 console.print("[bold blue]Goodbye! Thanks for chatting.[/bold blue]")
                 break
             
+            # Reset state for new interaction
+            messages = [SystemMessage(content="You are an AI assistant with access to web search capabilities and memory of past interactions.")]
             messages.append(HumanMessage(content=user_input))
+            
             memory_state["messages"].append({"role": "user", "content": user_input})
             
             display_thinking_animation()
@@ -287,26 +105,43 @@ def main():
                 "search_results": [],
                 "analysis": "",
                 "search_count": 0,
-                "decision": "",
+                "decision": "initial_response",  # Start with initial response
                 "search_query": user_input,
                 "memory": memory_state
             }
             
-            while True:
+            max_iterations = 10
+            iteration_count = 0
+            
+            while iteration_count < max_iterations:
+                previous_state = state.copy()
+                
                 state = graph.invoke(state)
+                
+                iteration_count += 1
+                
+                console.print(f"Iteration {iteration_count}: Decision = {state['decision']}, Search Count = {state['search_count']}, Query = '{state['search_query']}'")
+                
                 if END in state or state["decision"] == "respond":
                     break
-                if state["search_count"] >= 5:
-                    console.print("[bold yellow]Maximum number of searches reached. Proceeding with available information.[/bold yellow]")
+                
+                if state == previous_state:
+                    console.print("[bold yellow]State unchanged. Breaking loop.[/bold yellow]")
                     break
+            
+            # ... (rest of the code remains the same)
             
             ai_response = state["messages"][-1].content
             memory_state["messages"].append({"role": "assistant", "content": ai_response})
             
+            # Add error checking for the AI response
+            if "error" in ai_response.lower() or "insufficient information" in ai_response.lower():
+                console.print("[bold yellow]Warning: The AI encountered issues while processing your request. The response may be incomplete or inaccurate.[/bold yellow]")
+            
             # Create a simple panel for the final response
             response_panel = Panel(
                 Markdown(ai_response),
-                title="AI Assistant Response",
+                title=f"AI Assistant Response ({config['llm_provider'].capitalize()} - {config['model']})",
                 expand=False,
                 border_style="cyan",
                 padding=(1, 1),
@@ -317,10 +152,15 @@ def main():
             console.print(response_panel)
             console.print("\n")  # Add some space after the final response
             
-            messages = state["messages"]
+            # Reset the state for the next iteration
+            messages = [SystemMessage(content="You are an AI assistant with access to web search capabilities and memory of past interactions.")]
+            messages.extend(state["messages"][-2:])  # Keep only the last user message and AI response
             
         except Exception as e:
             console.print(Panel(f"An error occurred: {str(e)}", title="[bold red]Error[/bold red]", border_style="red"))
+            console.print("[bold yellow]Resetting conversation due to error. Please try your query again.[/bold yellow]")
+            messages = [SystemMessage(content="You are an AI assistant with access to web search capabilities and memory of past interactions.")]
+            memory_state = {"messages": []}
 
 if __name__ == "__main__":
     main()

@@ -1,127 +1,169 @@
-# WillyV's AI Assistant Terminal Chat
+# AI-Powered Terminal Agent with Web Search Capabilities
 
-![WillyV's AI Assistant](screenshot3.png)
+## Overview
 
-Welcome to WillyV's AI Assistant Terminal Chat! This powerful and highly customizable tool combines the capabilities of GPT-4o and SearxNG to provide an intelligent, web-aware chatbot right in your terminal. Designed to be flexible and extensible, it can be tailored to suit a wide range of use cases and personal preferences.
-
-## Table of Contents
-
-- [Features](#features)
-- [Demo](#demo)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Customization](#customization)
-- [Configuration](#configuration)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
+This project brings an intelligent AI assistant to your terminal, capable of answering questions, performing web searches, and maintaining context across conversations. It's designed for developers, researchers, and anyone who wants quick access to information without leaving the command line.
 
 ## Features
 
-- 🧠 Powered by OpenAI's GPT-4o for intelligent conversations
-- 🌐 Web search capabilities using SearxNG
-- 💾 Conversation memory for context-aware responses
-- 🎨 Rich, colorful terminal interface using Rich library
-- 🔄 Dynamic search refinement based on conversation context
-- 🛠️ Highly customizable with support for additional tools and persona modifications
-- 🔌 Extensible architecture allowing integration of various LangChain tools
-
+- **Intelligent Conversations**: Ask questions on any topic and get informed responses.
+- **Web Search Integration**: Perform web searches directly from your terminal using SearxNG.
+- **Context Retention**: Engage in multi-turn conversations with memory of previous interactions.
+- **Flexible AI Models**: Choose between OpenAI and Anthropic models.
+- **Rich Terminal Interface**: Enjoy syntax highlighting, markdown rendering, and formatted responses.
+- **Interactive Setup**: Easy-to-use configuration process with a welcoming ASCII art interface.
+- **Customizable Configuration**: Easily modify settings through the `config.json` file.
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-
-- Python 3.8+
-- Docker (for running SearxNG)
-- OpenAI API key
+- Python 3.7+
+- pip (Python package manager)
 
 ## Installation
 
-1. Clone this repository:
+1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/willyvs-ai-assistant.git
-   cd willyvs-ai-assistant/terminal_agent
+   git clone https://github.com/yourusername/ai-terminal-agent.git
+   cd ai-terminal-agent
    ```
 
-2. Install the required Python packages:
+2. Install dependencies:
    ```
    pip install -r requirements.txt
    ```
 
-3. Set up SearxNG using Docker:
+## Configuration
+
+1. Run the agent for the first time:
    ```
-   docker pull searxng/searxng
-   docker run -d -p 8080:8080 -e BASE_URL=http://localhost:8080/ searxng/searxng
+   python agent.py
    ```
 
-4. Create a `.env` file in the `terminal_agent` directory and add your OpenAI API key:
-   ```
-   OPENAI_API_KEY=your_api_key_here
-   ```
+2. Follow the interactive setup process:
+   - Choose your preferred AI provider (OpenAI or Anthropic)
+   - Enter your API key
+   - Select the AI model
+
+3. Your configuration will be saved in `config.json`
+
+To reconfigure:
+- Delete `config.json` and run `agent.py` again, or
+- Choose to reconfigure when prompted during startup
 
 ## Usage
 
-To start the AI Assistant Terminal Chat, run:
+1. Start the agent:
+   ```
+   python agent.py
+   ```
 
-```
-python agent.py
-```
+2. Begin chatting with your AI assistant in the terminal.
 
-Once launched, you can start chatting with the AI assistant. Type your questions or statements, and the assistant will respond based on its knowledge and web search results.
+3. To perform a web search, use a command like:
+   ```
+   search: What's the latest news about AI?
+   ```
 
-To exit the chat, simply type 'quit'.
+4. To exit the application, type `exit`, `quit`, or use Ctrl+C.
 
 ## Customization
 
-One of the key strengths of this AI Assistant is its flexibility and customizability. Here are some ways you can tailor it to your specific needs:
+- Modify `config.json` to change AI provider, model, or other settings.
+- Edit `ascii_art.py` to customize the welcome message.
+- Adjust `config_manager.py` to add new configuration options.
 
-### Adding New Tools
+## Project Structure
 
-You can easily extend the assistant's capabilities by integrating additional tools from LangChain's extensive library. 
-
-
-### Modifying Agent Persona
-
-You can give your AI assistant a unique personality or tailor its behavior for specific use cases by modifying the system prompts. In `agent.py`, locate the `ChatPromptTemplate` definitions and adjust the system messages to reflect the desired persona or behavior.
-
-Example for a more formal, business-oriented assistant:
-```python
-system_message = """You are a professional business consultant AI assistant. 
-Your responses should be formal, concise, and focused on providing 
-actionable business advice. Always consider the business context and 
-potential financial implications in your answers."""
-```
-
-### Customizing Search Behavior
-
-You can modify the search behavior by adjusting the `searx_wrapper` configuration in `agent.py`. This includes changing the search engines used, the number of results returned, or even implementing your own search method.
-
-## Configuration
-
-You can customize the behavior of the AI assistant by modifying the following parameters in `agent.py`:
-
-- `searx_host`: Change this if you're running SearxNG on a different host or port
-- `engines`: Modify the list of search engines used by SearxNG
-- `llm`: Adjust the OpenAI model or parameters as needed
-
-## Troubleshooting
-
-- **SearxNG connection issues**: Ensure Docker is running and the SearxNG container is active. Check if you can access `http://localhost:8080` in your browser.
-- **OpenAI API errors**: Verify that your API key is correct and you have sufficient credits.
-- **Slow responses**: This can be due to network latency or high usage of the OpenAI API. Try adjusting the `max_tokens` parameter in the `ChatOpenAI` configuration.
-- **Integration issues with new tools**: Make sure you've properly initialized the tool and added it to the `tools` list. Check the LangChain documentation for specific tool requirements.
+- `agent.py`: Main entry point for the application
+- `llm_components/`: Contains core logic for AI interactions
+  - `graph_nodes.py`: Defines the conversation flow
+  - `nodes.py`: Implements individual conversation nodes
+  - `shared.py`: Shared utilities and functions
+- `config_manager.py`: Handles configuration loading and saving
+- `ascii_art.py`: Generates the welcome ASCII art
+- `.env`: (Create this file) Store sensitive information like API keys
 
 ## Contributing
 
-Contributions are welcome! Whether it's adding new features, improving documentation, or reporting bugs, your input is valuable. Please feel free to submit a Pull Request or open an Issue.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is open source and available under the [MIT License](LICENSE).
 
----
+## Acknowledgements
 
-Created with ❤️ by William Van Sickle
+- OpenAI and Anthropic for their powerful language models
+- SearxNG for providing web search capabilities
 
-Empower your terminal with AI - customize, extend, and make it your own!
+For any issues or feature requests, please open an issue on the GitHub repository.
+
+Happy chatting with your AI terminal agent!
+
+## SearxNG Setup
+
+This project uses SearxNG for web search capabilities. To set up your own SearxNG instance:
+
+1. Clone the SearxNG Docker repository:
+   ```
+   git clone https://github.com/searxng/searxng-docker.git
+   cd searxng-docker
+   ```
+
+2. Edit the `.env` file to set your hostname and email:
+   ```
+   sed -i "s|SEARXNG_HOSTNAME=<your hostname>|SEARXNG_HOSTNAME=localhost|g" .env
+   ```
+
+3. Generate a secret key:
+   ```
+   sed -i "s|ultrasecretkey|$(openssl rand -hex 32)|g" searxng/settings.yml
+   ```
+
+4. Start SearxNG:
+   ```
+   docker compose up -d
+   ```
+
+5. Ensure the JSON format is enabled. Edit `searxng/settings.yml`:
+   ```yaml
+   search:
+       formats:
+           - html
+           - json
+   ```
+
+6. Restart SearxNG to apply changes:
+   ```
+   docker compose restart
+   ```
+
+7. Test the API:
+   ```
+   curl -kLX GET --data-urlencode q='test' -d format=json http://localhost:8888
+   ```
+
+8. Update the `config.json` in your AI Terminal Agent project with the SearxNG host:
+   ```json
+   {
+     "searxng_host": "http://localhost:8888"
+   }
+   ```
+
+For more detailed information, refer to the [SearxNG Docker GitHub repository](https://github.com/searxng/searxng-docker) and [LangChain's SearxNG integration documentation](https://python.langchain.com/docs/integrations/providers/searx/).
+
+## LangGraph Flow
+
+The following diagram illustrates the LangGraph flow in our AI Terminal Agent, focusing on the nodes defined in `graph_nodes.py`:
+
+![LangGraph Flow Diagram](diagram5.png)
+
+This visual representation helps to understand how different nodes interact within the LangGraph framework:
+
+- **Initial Response Node**: Attempts to answer the query without searching.
+- **Search Node**: Performs web searches using SearxNG when needed.
+- **Analyze Node**: Processes and summarizes search results.
+- **Decide Node**: Determines whether to search again or proceed to respond.
+- **Respond Node**: Generates the final response to the user.
+
+The flow shows the decision-making process, including when to search for information and when to respond directly, creating a dynamic and adaptive conversation flow.

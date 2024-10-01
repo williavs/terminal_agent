@@ -39,6 +39,7 @@ dist/
 
 # Backup files
 *.bak
+*.json
 
 # Other project-specific files to ignore (add as needed)
 # config.ini

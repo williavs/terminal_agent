@@ -12,32 +12,19 @@ from rich.columns import Columns
 import random
 import math
 
-WELCOME_ASCII_ART = r"""                                                                                                                                                                         
-            ████████╗███████╗██████╗ ███╗   ███╗██╗███╗   ██╗ █████╗ ██╗                    
-            ╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗██║                    
-               ██║   █████╗  ██████╔╝██╔████╔██║██║██╔██╗ ██║███████║██║                    
-               ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║██║╚██╗██║██╔══██║██║                    
-               ██║   ███████╗██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██║  ██║███████╗               
-               ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝               
-                                                                                            
- █████╗  ██████╗ ███████╗███╗   ██╗████████╗      ██╗   ██╗       ██████╗ ███╗   ██╗███████╗
-██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝      ██║   ██║      ██╔═══██╗████╗  ██║██╔════╝
-███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   █████╗██║   ██║█████╗██║   ██║██╔██╗ ██║█████╗  
-██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ╚════╝╚██╗ ██╔╝╚════╝██║   ██║██║╚██╗██║██╔══╝  
-██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║          ╚████╔╝       ╚██████╔╝██║ ╚████║███████╗
-╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝           ╚═══╝         ╚═════╝ ╚═╝  ╚═══╝╚══════╝
-                                                                                            
-                                                                                                                                                                                                                
+WELCOME_ASCII_ART = r"""                          
+
+
+████████╗███████╗██████╗ ███╗   ███╗███╗   ██╗██╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗        
+╚══██╔══╝██╔════╝██╔══██╗████╗ ████║████╗  ██║██║      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝        
+   ██║   █████╗  ██████╔╝██╔████╔██║██╔██╗ ██║██║█████╗███████║██║  ███╗█████╗   █╔██╗ ██║   ██║           
+   ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██║╚██╗██║██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║           
+   ██║   ███████╗██║  ██║██║ ╚═╝ ██║██║ ╚████║███████╗ ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║           
+   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═══╝╚══════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝                                                                                                                                                                                                                     
 """
 
 WELCOME_MESSAGE = """
 # Welcome to WillyV's Terminal Agent (V1) 🚀
-
-**Willy John (WJVSIII) VanSickle III**
-Paradigm Shifter | AI Enthusiast | Product Innovator | 
-
-CURRENTLY RUNNING ON: GPT-4o
-(WIP: Claude 3.5 Sonnet, Local M)
 
 https://www.linkedin.com/in/willyv3/
 
@@ -63,13 +50,50 @@ def animate_matrix(text):
         time.sleep(0.005)  # Reduced from 0.01 to speed up the matrix effect
 
 def animate_glow():
-    base_color = (0, 255, 255)  # cyan
-    glow_color = (255, 255, 255)  # white
+    colors = [
+        (255, 0, 0),    # red
+        (255, 127, 0),  # orange
+        (255, 255, 0),  # yellow
+        (0, 255, 0),    # green
+        (0, 0, 255),    # blue
+        (75, 0, 130),   # indigo
+        (143, 0, 255),  # violet
+    ]
     
-    for i in range(100):
-        factor = abs((i % 50) - 25) / 25.0  # Oscillate between 0 and 1
-        color = interpolate_color(base_color, glow_color, factor)
-        yield Text(WELCOME_ASCII_ART, style=Style(color=color, bold=True))
+    ascii_lines = WELCOME_ASCII_ART.split('\n')
+    max_line_length = max(len(line) for line in ascii_lines)
+    
+    for i in range(100):  # Increased for a longer animation
+        gradient_text = ""
+        white_glow_pos = int((math.sin(i * 0.1) + 1) * max_line_length / 2)
+        
+        for y, line in enumerate(ascii_lines):
+            for x, char in enumerate(line.ljust(max_line_length)):
+                if char.strip():
+                    color_index = int((x + i) % len(colors))
+                    next_color_index = (color_index + 1) % len(colors)
+                    factor = (x + i) % 1.0
+                    color = interpolate_color(colors[color_index], colors[next_color_index], factor)
+                    
+                    # Add white glow effect
+                    distance = abs(x - white_glow_pos)
+                    if distance < 5:
+                        glow_factor = 1 - (distance / 5)
+                        color = interpolate_color(hex_to_rgb(color), (255, 255, 255), glow_factor)
+                    
+                    gradient_text += f"[{color}]{char}[/]"
+                else:
+                    gradient_text += char
+            gradient_text += "\n"
+        
+        styled_text = Text.from_markup(gradient_text.strip())
+        
+        yield styled_text
+        time.sleep(0.05)  # Adjusted for smooth animation
+
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 def animate_rainbow():
     for i in range(30):  # Increased from 100 to 200 to extend the rainbow animation
@@ -87,53 +111,31 @@ def display_welcome_message():
     welcome_text = Markdown(WELCOME_MESSAGE)
 
     with Live(console=console, screen=True, refresh_per_second=30) as live:
-        # Matrix effect
-        for frame in animate_matrix(WELCOME_ASCII_ART):
-            live.update(frame)
-
-        # # Glow effect
-        # for frame in animate_glow():
-        #     panel = Panel(
-        #         Group(
-        #             frame,
-        #             Text("\n")
-        #             # welcome_text
-        #         ),
-        #         box=box.ROUNDED,
-        #         border_style="bold cyan",
-        #         title="Willy VanSickle's AI Assistant",
-        #         title_align="center",
-        #     )
-        #     live.update(panel)
-        #     time.sleep(0.05)
-
-        # Rainbow effect
-        for frame in animate_rainbow():
+        # Gradient glow effect (starts immediately)
+        for frame in animate_glow():
             panel = Panel(
                 Group(
                     frame,
                     Text("\n")
-                    
                 ),
                 box=box.ROUNDED,
                 border_style="bold cyan",
-                title="Willy VanSickle's AI Assistant",
+                title="Terminal Agent",
                 title_align="center",
             )
             live.update(panel)
-            time.sleep(0.03)  # Reduced from 0.05 to speed up the rainbow effect
 
         # Typing effect for welcome message
-        for typed_text in animate_typing(WELCOME_MESSAGE, speed=0.01):  # Reduced speed from 0.01 to 0.005
+        for typed_text in animate_typing(WELCOME_MESSAGE, speed=0.01):
             panel = Panel(
                 Group(
-                    Text(WELCOME_ASCII_ART, style="bold cyan"),
+                    Text(WELCOME_ASCII_ART, style="green"),
                     Text("\n"),
                     typed_text
                 ),
                 box=box.ROUNDED,
                 border_style="bold cyan",
-                title="Willy VanSickle's AI Assistant",
+                title="Terminal Agent",
                 title_align="center",
             )
             live.update(panel)
